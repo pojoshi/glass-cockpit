@@ -1,0 +1,10 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+web/node_modules/
+web/demo/bundle.js
+web/demo/index.html
+.env
+.DS_Store
+.ruff_cache/
