@@ -2,6 +2,8 @@
 
 **The operator console for a fleet of autonomous agents: live status, an approval queue, per-agent kill switches, and reasoning replay.**
 
+**[Live demo](https://glass-cockpit.onrender.com)** — free-tier hosting, so the first load after it's been idle can take up to a minute to wake up.
+
 Four scripted agents run real jobs against [countersigned-actions](https://github.com/pojoshi/countersigned-actions)' policy gate: deleting customer records, exporting data, scaling infrastructure, moving money. One operator watches all four from one screen, approves what needs a human, kills what's misbehaving, and can replay any agent's last 20 steps to see exactly why it did what it did.
 
 ```
@@ -27,7 +29,7 @@ for that, built on the policy gate I'd already written rather than a new pile of
   feeding that agent new work. A global one in countersigned-actions, stopping execution
   regardless of what any orchestrator does. See [docs/FAILURE_TEST.md](docs/FAILURE_TEST.md).
 - **Drift is a number, not a vibe.** The share of an agent's last 10 outcomes that were
-  blocked, refused, or errored — simple on purpose, see [docs/NOTES.md](docs/NOTES.md)
+  blocked, refused, or errored — simple on purpose, see [docs/THESIS.md](docs/THESIS.md)
   for what a real version would need instead.
 - **No model calls.** Same reasoning as the gate itself: reproducible, no API key.
   Cost and tokens per step are estimated (`src/glasscockpit/costs.py`), not billed.
