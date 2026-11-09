@@ -1,0 +1,33 @@
+# Postgres + the cockpit (fleet runs inline).   docker compose up --build
+# Then open http://localhost:8001
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: glasscockpit
+      POSTGRES_PASSWORD: glasscockpit
+      POSTGRES_DB: glasscockpit
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glasscockpit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5433:5432"
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://glasscockpit:glasscockpit@db:5432/glasscockpit
+      SEED_DEMO: "1"
+      RUN_FLEET: "1"
+    ports:
+      - "8001:8001"
+
+volumes:
+  pgdata:
