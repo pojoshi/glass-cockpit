@@ -1,0 +1,21 @@
+{
+  "name": "glass-cockpit-ui",
+  "version": "1.0.0",
+  "description": "Operator UI for glass-cockpit: fleet status, approval queue, kill switches, and replay, talking to the real API over fetch and SSE.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "check": "pnpm run typecheck && pnpm test && pnpm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

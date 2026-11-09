@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>glass-cockpit</title>
+<meta name="description" content="Operator cockpit for a fleet of autonomous agents: live status, an approval queue, per-agent kill switches, and reasoning replay.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #e1e2e7; --card: #ffffff; --ink: #343b58; --muted: #5a6186; --line: #cbcfdd; --soft: #eceef2;
+  --accent: #6a3fc0;
+  --execute: #4a6b2c; --escalate: #8a5a14; --ask: #2959aa; --defer: #7847bd; --refuse: #c0314f;
+  --focus: var(--accent); --on-accent: #ffffff;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1a1b26; --card: #1f2335; --ink: #c0caf5; --muted: #8b92b8; --line: #2f3454; --soft: #252a40;
+    --accent: #bb9af7;
+    --execute: #9ece6a; --escalate: #e0af68; --ask: #7aa2f7; --defer: #bb9af7; --refuse: #f7768e;
+    --focus: var(--accent); --on-accent: #16161e; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+button, select, textarea, input { font: inherit; color: inherit; }
+button { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+button:hover { filter: brightness(1.08); }
+button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+button.danger { background: var(--refuse); color: #fff; border-color: var(--refuse); }
+button.ghost { background: transparent; }
+h1, h2, h3 { font-family: var(--mono); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 48px; }
+header { padding: 24px 0 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+header h1 { font-size: clamp(22px, 4vw, 30px); }
+header p { margin: 4px 0 0; max-width: 56ch; color: var(--muted); font-size: 14px; }
+header .controls { display: flex; gap: 8px; align-items: center; }
+.grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 1040px) { .grid { grid-template-columns: 1fr 1fr 320px; align-items: start; } }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.panel h2 { font-size: 15px; margin-bottom: 10px; color: var(--muted); }
+.empty-note { color: var(--muted); font-size: 13.5px; }
+.mono { font-family: var(--mono); font-size: 12px; }
+
+.agent { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 10px; background: var(--soft); }
+.agent.status-killed { opacity: 0.6; border-color: var(--refuse); }
+.agent.status-paused { border-style: dashed; }
+.agent-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.pill { font-size: 11px; border-radius: 999px; padding: 2px 8px; border: 1px solid var(--line); }
+.pill-running { color: var(--execute); border-color: var(--execute); }
+.pill-paused { color: var(--escalate); border-color: var(--escalate); }
+.pill-killed { color: var(--refuse); border-color: var(--refuse); }
+.agent-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin: 6px 0; }
+.agent-reason { font-size: 12.5px; color: var(--refuse); margin-bottom: 6px; }
+.drift-clean { color: var(--execute); } .drift-minor { color: var(--escalate); }
+.drift-elevated { color: var(--escalate); } .drift-high { color: var(--refuse); }
+.agent-recent { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 2px; font-size: 12.5px; max-height: 110px; overflow: auto; }
+.agent-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+.agent-controls button { font-size: 12.5px; padding: 4px 8px; }
+
+.approval { border: 1px solid var(--line); border-left: 4px solid var(--escalate); border-radius: 6px;
+  padding: 9px 10px; margin-bottom: 8px; background: var(--soft); font-size: 13px; }
+.approval-why { color: var(--muted); font-size: 12px; margin: 4px 0; }
+.row { display: flex; gap: 6px; }
+
+.stream { max-height: 520px; overflow: auto; display: flex; flex-direction: column; font-size: 13px; }
+.stream-row { padding: 3px 0; border-bottom: 1px solid var(--line); }
+.k-reasoning { color: var(--muted); } .k-executed { color: var(--execute); } .k-escalated { color: var(--escalate); }
+.k-deferred { color: var(--defer); } .k-blocked { color: var(--ask); } .k-refused, .k-error, .k-killed { color: var(--refuse); }
+.k-paused { color: var(--escalate); } .k-resumed { color: var(--execute); }
+
+.replay { margin-top: 16px; }
+.replay-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.replay-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; max-height: 300px; overflow: auto; }
+
+.toast { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); background: var(--ink);
+  color: var(--card); padding: 8px 14px; border-radius: 8px; max-width: 90vw; font-size: 14px; }
+.toast[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>glass-cockpit</h1>
+      <p>Four agents, one gate underneath, one operator at the console. Pause, kill, approve, or replay any of them below.</p>
+    </div>
+    <div class="controls">
+      <div id="kill-switch"></div>
+      <button id="reset" class="ghost">reset demo</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Fleet</h2>
+      <div id="fleet"></div>
+    </section>
+    <section class="panel">
+      <h2>Live stream</h2>
+      <div id="stream" class="stream"></div>
+    </section>
+    <section class="panel">
+      <h2>Approval queue</h2>
+      <div id="approvals"></div>
+    </section>
+  </div>
+
+  <div id="replay" class="panel" hidden></div>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="bundle.js"></script>
+</body>
+</html>
